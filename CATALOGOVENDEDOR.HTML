@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Catálogo Vendedores | Corminho</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        input, select, textarea { -webkit-user-select: auto !important; user-select: auto !important; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 4px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        button, select, input { touch-action: manipulation; }
+
+        .drawer-overlay { transition: opacity 0.3s ease-in-out; }
+        .drawer-content { transition: transform 0.3s ease-in-out; }
+
+        @media print {
+            body { background: white !important; color: #111 !important; font-size: 10pt; }
+            header, nav, button, .fixed, .no-print, #btnAbrirDrawerMobile { display: none !important; }
+            #modalOrcamento { position: absolute !important; inset: 0 !important; background: white !important; display: block !important; padding: 0 !important; max-height: none !important; box-shadow: none !important; }
+            #modalOrcamento > div { max-width: 100% !important; width: 100% !important; box-shadow: none !important; border: none !important; margin: 0 !important; padding: 5mm !important; max-height: none !important; overflow: visible !important; }
+            input { border: none !important; background: transparent !important; padding: 0 !important; font-weight: bold; }
+            table { font-size: 9.5pt; width: 100% !important; }
+            th, td { padding: 6px 8px !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans min-h-screen pb-24 md:pb-12 antialiased">
+
+    <!-- ECRÃ DE LOGIN OBRIGATÓRIO (PROTEÇÃO TOTAL) -->
+    <div id="loginScreen" class="fixed inset-0 bg-emerald-950 z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl max-w-md w-full space-y-5 border border-emerald-800">
+            <div class="text-center space-y-1">
+                <div class="w-14 h-14 bg-emerald-100 text-emerald-900 rounded-2xl flex items-center justify-center text-2xl font-black mx-auto mb-2 shadow-inner">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h2 class="text-xl font-black text-gray-900">Corminho Tintas</h2>
+                <p class="text-xs text-gray-500 font-semibold">Área Privada e Exclusiva para Vendedores</p>
+            </div>
+
+            <form id="formLoginVendedor" onsubmit="executarLoginFirebase(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">E-mail de Acesso:</label>
+                    <input type="email" id="loginEmail" required placeholder="vendedor@corminho.pt" class="w-full border border-gray-300 rounded-xl p-3 font-semibold bg-gray-50 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Palavra-passe:</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full border border-gray-300 rounded-xl p-3 font-semibold bg-gray-50 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+                </div>
+
+                <div id="loginError" class="hidden text-red-600 font-bold text-[11px] bg-red-50 p-2.5 rounded-xl border border-red-200 text-center"></div>
+
+                <button type="submit" id="btnLoginSubmit" class="w-full bg-emerald-800 hover:bg-emerald-900 active:scale-95 text-white font-black py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2 uppercase tracking-wider text-xs">
+                    <i class="fas fa-sign-in-alt"></i> Entrar no Painel
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PAINEL PRINCIPAL (SÓ CARREGA APÓS LOGIN) -->
+    <div id="appContainer" class="hidden">
+        
+        <!-- Header Principal -->
+        <header class="bg-emerald-950 text-white shadow-md sticky top-0 z-40 no-print border-b border-emerald-900">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="cursor-pointer flex items-center gap-2.5" onclick="voltarHomeVendedor()">
+                    <div class="w-9 h-9 bg-emerald-900 rounded-xl flex items-center justify-center text-emerald-400 font-bold text-base shadow-inner">
+                        <i class="fas fa-paint-roller"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-sm md:text-base font-extrabold tracking-tight leading-none text-white">Corminho</h1>
+                        <p class="text-[10px] text-emerald-300 font-medium tracking-wide mt-0.5">Painel Comercial</p>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex gap-1.5 bg-emerald-900/80 p-1 rounded-xl text-xs font-bold items-center border border-emerald-800">
+                    <button onclick="voltarHomeVendedor()" class="px-3 py-1.5 rounded-lg bg-emerald-800 text-white hover:bg-emerald-700 transition flex items-center gap-1.5">
+                        <i class="fas fa-home text-emerald-300"></i> Marcas
+                    </button>
+                    <button onclick="abrirModuloBaratos()" class="px-3 py-1.5 rounded-lg bg-emerald-700 text-white hover:bg-emerald-600 transition flex items-center gap-1.5">
+                        <i class="fas fa-tags text-emerald-300"></i> Mais Barato
+                    </button>
+                    <button onclick="abrirModuloCoresVendedor()" class="px-3 py-1.5 rounded-lg bg-teal-900 text-white hover:bg-teal-800 transition flex items-center gap-1.5">
+                        <i class="fas fa-calculator text-teal-300"></i> Calcular Cor
+                    </button>
+                    <button onclick="abrirModuloRefsVendedor()" class="px-3 py-1.5 rounded-lg bg-amber-900 text-white hover:bg-amber-800 transition flex items-center gap-1.5">
+                        <i class="fas fa-search text-amber-300"></i> Lupa Ref.
+                    </button>
+                    <button onclick="abrirHistoricoOrcamentos()" class="px-3 py-1.5 rounded-lg bg-blue-900 text-white hover:bg-blue-800 transition flex items-center gap-1.5">
+                        <i class="fas fa-history text-blue-300"></i> Histórico
+                    </button>
+                    <button onclick="abrirModalOrcamento()" class="px-3 py-1.5 rounded-lg bg-emerald-500 text-emerald-950 hover:bg-emerald-400 transition flex items-center gap-1.5 relative font-extrabold">
+                        <i class="fas fa-file-invoice"></i> Orçamento
+                        <span id="badgeCountOrcamento" class="hidden bg-red-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full -mt-2 -mr-1 shadow">0</span>
+                    </button>
+                    <button onclick="executarLogoutFirebase()" class="px-3 py-1.5 rounded-lg bg-red-900/80 text-white hover:bg-red-800 transition flex items-center gap-1" title="Sair do Sistema">
+                        <i class="fas fa-power-off text-red-300"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-3 sm:px-6 py-5">
+
+            <!-- VISTA 1: GRELHA DE MARCAS -->
+            <div id="homeViewVendedor" class="space-y-4">
+                <div class="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-black text-gray-900 tracking-tight">Selecione a Marca ou Ferramenta</h2>
+                        <p class="text-xs text-gray-500 mt-0.5">Escolha uma opção para iniciar o atendimento comercial em campo.</p>
+                    </div>
+                </div>
+
+                <div id="brandsGridVendedor" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                    <div class="col-span-full text-center py-16 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2 text-emerald-600"></i><p class="text-xs font-semibold">A carregar dados protegidos...</p></div>
+                </div>
+            </div>
+
+            <!-- VISTA 2: CATÁLOGO COM CATEGORIAS -->
+            <div id="productsViewVendedor" class="hidden space-y-4">
+                <div class="flex justify-between items-center bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xs">
+                    <button onclick="voltarHomeVendedor()" class="inline-flex items-center gap-1.5 text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 px-3.5 py-2 rounded-xl transition active:scale-95">
+                        <i class="fas fa-arrow-left"></i> Voltar às Marcas
+                    </button>
+                    <h2 id="selectedBrandTitleVendedor" class="text-xs sm:text-sm font-black text-gray-900 uppercase tracking-wide truncate max-w-[140px] sm:max-w-none"></h2>
+                    
+                    <button onclick="toggleDrawerCategorias(true)" id="btnAbrirDrawerMobile" class="md:hidden inline-flex items-center gap-1.5 text-xs font-black bg-emerald-900 text-white px-3 py-2 rounded-xl shadow-xs active:scale-95">
+                        <i class="fas fa-filter text-emerald-300"></i> Categorias
+                    </button>
+
+                    <span id="productCountBadge" class="hidden md:inline-block text-[11px] bg-emerald-50 text-emerald-800 font-extrabold px-2.5 py-1 rounded-full border border-emerald-200">0 Artigos</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-5 items-start">
+                    <div id="drawerOverlay" class="fixed inset-0 bg-black/60 z-50 hidden md:hidden drawer-overlay" onclick="toggleDrawerCategorias(false)"></div>
+                    
+                    <div id="drawerContent" class="fixed md:sticky top-0 md:top-20 left-0 bottom-0 z-50 md:z-30 w-72 md:w-auto bg-white p-4 md:p-3.5 md:rounded-2xl border-r md:border border-gray-200 shadow-2xl md:shadow-xs md:col-span-1 transform -translate-x-full md:translate-x-0 drawer-content flex flex-col justify-between md:block">
+                        <div>
+                            <div class="flex items-center justify-between border-b pb-3 mb-3 md:pb-1.5 md:mb-2.5">
+                                <span class="text-xs md:text-[11px] font-black text-gray-800 md:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fas fa-filter text-emerald-700"></i> Categorias
+                                </span>
+                                <button onclick="toggleDrawerCategorias(false)" class="md:hidden text-gray-400 hover:text-gray-700 font-bold p-1 text-lg">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div id="sidebarCategoriesContainer" class="flex flex-col gap-1.5 overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-220px)] pr-1"></div>
+                        </div>
+
+                        <div class="md:hidden pt-3 border-t text-center">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Corminho Tintas</p>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <div id="categoriesContainerVendedor" class="space-y-6">
+                            <div class="text-center py-12 text-gray-400 text-xs">A carregar artigos...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA: MAIS BARATO -->
+            <div id="baratosViewVendedor" class="hidden space-y-4 max-w-2xl mx-auto">
+                <button onclick="voltarHomeVendedor()" class="inline-flex items-center gap-1.5 text-xs font-bold bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-xl shadow-xs hover:bg-gray-50 transition"><i class="fas fa-arrow-left"></i> Voltar</button>
+
+                <div class="bg-white p-5 sm:p-7 rounded-2xl border border-emerald-200 shadow-sm space-y-4">
+                    <div class="border-b border-gray-100 pb-3.5 flex items-center gap-3">
+                        <div class="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-xl flex items-center justify-center font-bold text-base shrink-0 shadow-inner"><i class="fas fa-tags"></i></div>
+                        <div>
+                            <h3 class="font-black text-sm sm:text-base text-gray-900">Pesquisa Inteligente - Mais Barato</h3>
+                            <p class="text-[11px] text-gray-500">Escreva o que procura (ex: verniz, poliéster). Aplique o desconto e adicione com nota opcional.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="relative">
+                            <input type="text" id="inputPesquisaBarato" oninput="procurarArtigosMaisBaratosInteligente()" placeholder="Ex: verniz, poliéster, lixa..." class="w-full border border-gray-300 rounded-xl py-3 pl-10 pr-4 text-xs sm:text-sm font-bold bg-gray-50 focus:ring-2 focus:ring-emerald-500 uppercase tracking-wide">
+                            <i class="fas fa-search absolute left-3.5 top-3.5 text-gray-400 text-sm"></i>
+                        </div>
+                    </div>
+
+                    <div id="resultadoBaratosContainer" class="space-y-3 pt-1">
+                        <div class="text-center text-gray-400 italic text-xs py-10 border border-dashed rounded-xl">
+                            Escreva acima para ver os artigos mais baratos do catálogo.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA: CÁLCULO DE COR -->
+            <div id="colorsViewVendedor" class="hidden space-y-4 max-w-2xl mx-auto">
+                <button onclick="voltarHomeVendedor()" class="inline-flex items-center gap-1.5 text-xs font-bold bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-xl shadow-xs hover:bg-gray-50 transition"><i class="fas fa-arrow-left"></i> Voltar</button>
+                
+                <div class="bg-white p-5 sm:p-7 rounded-2xl border border-teal-200 shadow-sm space-y-4">
+                    <div class="border-b border-gray-100 pb-3.5 flex items-center gap-3">
+                        <div class="w-10 h-10 bg-teal-100 text-teal-800 rounded-xl flex items-center justify-center font-bold text-base shrink-0 shadow-inner"><i class="fas fa-calculator"></i></div>
+                        <div>
+                            <h3 class="font-black text-sm sm:text-base text-gray-900">Cálculo Rápido de Cor</h3>
+                            <p class="text-[11px] text-gray-500">Selecione o sistema, gramas, desconto e notas do veículo.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1">Sistema / Efeito de Cor:</label>
+                            <select id="calcCorSelect" onchange="calcularPrecoFinalVendedor()" class="w-full border border-gray-300 rounded-xl p-3 font-bold text-xs sm:text-sm bg-gray-50 focus:ring-2 focus:ring-teal-500">
+                                <option value="">-- Escolha da Lista --</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-bold text-gray-700 mb-1">Quantidade (g):</label>
+                                <div class="relative">
+                                    <input type="number" id="calcCorGramas" oninput="calcularPrecoFinalVendedor()" placeholder="Ex: 250" class="w-full border border-gray-300 rounded-xl p-3 text-xs sm:text-sm font-bold bg-gray-50 focus:ring-2 focus:ring-teal-500 pr-8">
+                                    <span class="absolute right-3 top-3.5 font-bold text-gray-400">g</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-gray-700 mb-1">Desconto (%):</label>
+                                <div class="relative">
+                                    <input type="number" id="calcCorDesconto" value="0" min="0" max="100" oninput="calcularPrecoFinalVendedor()" placeholder="0" class="w-full border border-gray-300 rounded-xl p-3 text-xs sm:text-sm font-bold bg-gray-50 focus:ring-2 focus:ring-teal-500 pr-8">
+                                    <span class="absolute right-3 top-3.5 font-bold text-gray-400">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1">Nota / Veículo / Indicação (Opcional):</label>
+                            <input type="text" id="calcCorNota" placeholder="Ex: Matrícula 11-AA-22 (Audi Cinza)" class="w-full border border-gray-300 rounded-xl p-3 font-semibold bg-gray-50 text-xs">
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-teal-950 via-emerald-950 to-teal-900 text-white p-5 sm:p-6 rounded-2xl shadow-md text-center space-y-3">
+                        <div class="flex justify-around items-center border-b border-teal-800/80 pb-2 text-[11px]">
+                            <div>
+                                <span class="text-teal-200/80 block">PVP s/ IVA</span>
+                                <span id="resultadoPvpBaseCor" class="font-bold text-xs sm:text-sm text-white">0.00 €</span>
+                            </div>
+                            <div class="h-5 w-px bg-teal-800"></div>
+                            <div>
+                                <span class="text-teal-200/80 block">c/ Desconto</span>
+                                <span id="resultadoComDescCor" class="font-bold text-xs sm:text-sm text-amber-300">0.00 €</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-[10px] uppercase font-black text-emerald-300 tracking-wider block">Total c/ IVA (23%)</span>
+                            <div id="resultadoPrecoCor" class="text-2xl sm:text-3xl font-black text-white tracking-tight">0.00 €</div>
+                            <p id="resultadoPrecoDetalhe" class="text-[10px] text-teal-100/70 italic mt-1">Indique a quantidade em gramas.</p>
+                        </div>
+
+                        <button onclick="adicionarCorAoOrcamento()" class="w-full bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-emerald-950 font-black py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
+                            <i class="fas fa-plus-circle text-sm"></i> Adicionar Cor ao Orçamento
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA: LUPA DE REFERÊNCIAS -->
+            <div id="refsViewVendedor" class="hidden space-y-4 max-w-2xl mx-auto">
+                <button onclick="voltarHomeVendedor()" class="inline-flex items-center gap-1.5 text-xs font-bold bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-xl shadow-xs hover:bg-gray-50 transition"><i class="fas fa-arrow-left"></i> Voltar</button>
+
+                <div class="bg-gradient-to-br from-amber-900 to-amber-950 text-white p-5 sm:p-7 rounded-2xl shadow-md border border-amber-700 space-y-4">
+                    <div class="border-b border-amber-700/60 pb-3.5 flex items-center gap-3">
+                        <div class="w-10 h-10 bg-amber-500/20 text-amber-300 rounded-xl flex items-center justify-center font-bold text-base shrink-0 shadow-inner"><i class="fas fa-search"></i></div>
+                        <div>
+                            <h3 class="text-sm sm:text-base font-black text-amber-200 uppercase tracking-wider">Lupa de Código de Carro</h3>
+                            <p class="text-[11px] text-amber-100/80">Digite o código ou tom de cor.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-amber-100">Código, Marca ou Cor:</label>
+                        <div class="relative">
+                            <input type="text" id="lupaRefInputVendedor" oninput="pesquisarRefExclusivaVendedor()" placeholder="Ex: LA7W, BEGE, FIAT..." class="w-full bg-amber-950/90 border border-amber-500 rounded-xl py-3 pl-10 pr-4 text-xs sm:text-sm font-bold text-white placeholder-amber-400/50 focus:outline-none focus:ring-2 focus:ring-amber-400 uppercase tracking-wide">
+                            <i class="fas fa-search absolute left-3.5 top-3.5 text-amber-400 text-sm"></i>
+                        </div>
+                    </div>
+
+                    <div id="lupaResultadoVendedor" class="space-y-2.5 pt-1">
+                        <div class="text-center text-amber-200/60 italic text-xs py-10 border border-dashed border-amber-700/50 rounded-xl">
+                            Escreva o código acima para pesquisar.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- MODAIS -->
+        <div id="modalZoomImagem" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center hidden p-4" onclick="fecharZoomImagem()">
+            <div class="relative max-w-3xl w-full flex flex-col items-center justify-center">
+                <button onclick="fecharZoomImagem()" class="absolute -top-10 right-0 text-white text-2xl font-bold bg-black/50 w-10 h-10 rounded-full flex items-center justify-center border border-white/30">
+                    <i class="fas fa-times"></i>
+                </button>
+                <img id="imgZoomElement" src="" alt="Zoom" class="max-h-[80vh] w-auto object-contain rounded-2xl shadow-2xl transition-transform duration-300">
+                <p id="tituloZoomElement" class="text-white text-xs font-bold mt-3 text-center bg-black/60 px-4 py-1.5 rounded-full border border-white/20"></p>
+            </div>
+        </div>
+
+        <div id="modalHistorico" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center hidden p-4">
+            <div class="bg-white p-5 sm:p-7 rounded-2xl max-w-2xl w-full mx-auto shadow-2xl border space-y-4 max-h-[85vh] overflow-y-auto">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-black text-sm sm:text-base text-gray-900 flex items-center gap-2">
+                        <i class="fas fa-history text-blue-700"></i> Histórico de Orçamentos Guardados
+                    </h3>
+                    <button onclick="fecharHistoricoOrcamentos()" class="text-gray-400 hover:text-gray-600 font-bold p-1"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <div id="listaHistoricoContainer" class="space-y-3">
+                    <div class="text-center text-gray-400 italic text-xs py-8">Nenhum orçamento guardado no histórico.</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="modalOrcamento" class="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
+            <div class="bg-white p-5 sm:p-7 rounded-t-3xl sm:rounded-2xl max-w-2xl w-full mx-0 shadow-2xl border space-y-4 max-h-[92vh] overflow-y-auto">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-black text-sm sm:text-base text-gray-900 flex items-center gap-2">
+                        <i class="fas fa-file-invoice text-emerald-700"></i> Proposta Detalhada de Orçamento
+                    </h3>
+                    <button onclick="fecharModalOrcamento()" class="text-gray-400 hover:text-gray-600 font-bold p-1 no-print"><i class="fas fa-times text-xl"></i></button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Cliente / Oficina:</label>
+                        <input type="text" id="orcClienteNome" placeholder="Ex: Oficina Gaia Auto" class="w-full border border-gray-300 rounded-lg p-2 font-semibold bg-white">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Contacto:</label>
+                        <input type="text" id="orcClienteContacto" placeholder="Ex: 910 000 000" class="w-full border border-gray-300 rounded-lg p-2 font-semibold bg-white">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto -mx-2 sm:mx-0">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-gray-100 border-b text-gray-700 font-bold uppercase text-[11px]">
+                                <th class="p-2.5">Artigo / Detalhes</th>
+                                <th class="p-2.5 text-center">Qtd</th>
+                                <th class="p-2.5 text-right">Desc.</th>
+                                <th class="p-2.5 text-right">Total c/IVA</th>
+                                <th class="p-2.5 text-center no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyOrcamentoItens" class="divide-y divide-gray-100">
+                            <tr><td colspan="5" class="p-8 text-center text-gray-400 italic">Nenhum artigo no orçamento.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bg-emerald-950 text-white p-4 rounded-xl flex justify-between items-center text-xs shadow-inner">
+                    <div>
+                        <p class="text-emerald-200">Subtotal s/ IVA: <span id="orcSubtotal" class="font-bold text-white">0.00 €</span></p>
+                        <p class="text-emerald-200">IVA (23%): <span id="orcIva" class="font-bold text-white">0.00 €</span></p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[9px] uppercase tracking-wider text-emerald-300 font-extrabold block">Total Proposta</span>
+                        <span id="orcTotalFinal" class="text-xl sm:text-2xl font-black text-white tracking-tight">0.00 €</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t no-print">
+                    <button onclick="guardarOrcamentoNoHistorico()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1 transition active:scale-95 shadow-xs">
+                        <i class="fas fa-save"></i> <span>Guardar</span>
+                    </button>
+                    <button onclick="limparOrcamento()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2.5 rounded-xl text-xs transition active:scale-95">Limpar</button>
+                    <button onclick="enviarOrcamentoWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1 transition active:scale-95 shadow-xs">
+                        <i class="fab fa-whatsapp"></i> <span>WhatsApp</span>
+                    </button>
+                    <button onclick="window.print()" class="bg-emerald-900 hover:bg-emerald-950 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1 transition active:scale-95 shadow-xs">
+                        <i class="fas fa-print"></i> <span>Imprimir</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENU INFERIOR FIXO PARA TELEMÓVEL -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-emerald-950 text-white border-t border-emerald-900 z-40 flex justify-around items-center py-2 px-1 shadow-2xl no-print">
+            <button onclick="voltarHomeVendedor()" class="flex flex-col items-center justify-center w-full text-[10px] font-bold text-emerald-200 hover:text-white active:scale-90 transition">
+                <i class="fas fa-home text-base mb-0.5"></i>
+                <span>Marcas</span>
+            </button>
+            <button onclick="abrirModuloBaratos()" class="flex flex-col items-center justify-center w-full text-[10px] font-bold text-emerald-200 hover:text-white active:scale-90 transition">
+                <i class="fas fa-tags text-base mb-0.5 text-emerald-300"></i>
+                <span>Barato</span>
+            </button>
+            <button onclick="abrirModuloCoresVendedor()" class="flex flex-col items-center justify-center w-full text-[10px] font-bold text-emerald-200 hover:text-white active:scale-90 transition">
+                <i class="fas fa-calculator text-base mb-0.5 text-teal-300"></i>
+                <span>Cor</span>
+            </button>
+            <button onclick="abrirHistoricoOrcamentos()" class="flex flex-col items-center justify-center w-full text-[10px] font-bold text-emerald-200 hover:text-white active:scale-90 transition">
+                <i class="fas fa-history text-base mb-0.5 text-blue-300"></i>
+                <span>Histórico</span>
+            </button>
+            <button onclick="abrirModalOrcamento()" class="flex flex-col items-center justify-center w-full text-[10px] font-bold text-emerald-200 hover:text-white active:scale-90 transition relative">
+                <i class="fas fa-file-invoice text-base mb-0.5 text-emerald-400"></i>
+                <span>Orçamento</span>
+                <span id="floatingBadgeCount" class="absolute top-0 right-3 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-emerald-950 shadow">0</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- JavaScript Integrado com Firebase Auth + Offline + Histórico -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCc7vQcIGslkoJ_I6dR2iDw7EgFRgl9Q5Q",
+            authDomain: "lista-de-artigos-preco.firebaseapp.com",
+            databaseURL: "https://lista-de-artigos-preco-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "lista-de-artigos-preco",
+            storageBucket: "lista-de-artigos-preco.firebasestorage.app",
+            messagingSenderId: "345097639021",
+            appId: "1:345097639021:web:1895ce25a03f2592889b64"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        
+        const db = initializeFirestore(app, {
+            localCache: persistentLocalCache({
+                tabManager: persistentMultipleTabManager()
+            })
+        });
+
+        let todosProdutos = [];
+        let tabelaCores = [];
+        let dicionarioRefs = [];
+        let marcaAtual = '';
+        let categoriaAtiva = 'TODAS';
+        let itensOrcamento = [];
+        let corCalculadaAtual = null;
+
+        const TaxaIVA = 0.23;
+
+        // VERIFICAÇÃO DE SESSÃO COM FIREBASE AUTH
+        onAuthStateChanged(auth, (user) => {
+            const loginScreen = document.getElementById('loginScreen');
+            const appContainer = document.getElementById('appContainer');
+
+            if (user) {
+                loginScreen.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                carregarTudoVendedor();
+            } else {
+                loginScreen.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+            }
+        });
+
+        window.executarLoginFirebase = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPassword').value.trim();
+            const errDiv = document.getElementById('loginError');
+            const btnSubmit = document.getElementById('btnLoginSubmit');
+
+            errDiv.classList.add('hidden');
+            btnSubmit.innerHTML = `<i class="fas fa-spinner fa-spin"></i> A AVALIAR...`;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (err) {
+                console.error("Erro no login:", err);
+                errDiv.textContent = "E-mail ou palavra-passe incorretos!";
+                errDiv.classList.remove('hidden');
+            } finally {
+                btnSubmit.innerHTML = `<i class="fas fa-sign-in-alt"></i> Entrar no Painel`;
+            }
+        }
+
+        window.executarLogoutFirebase = function() {
+            if (confirm("Deseja fechar a sessão comercial?")) {
+                signOut(auth);
+            }
+        }
+
+        window.toggleDrawerCategorias = function(abrir) {
+            const overlay = document.getElementById('drawerOverlay');
+            const drawer = document.getElementById('drawerContent');
+
+            if (abrir) {
+                overlay.classList.remove('hidden');
+                setTimeout(() => { drawer.classList.remove('-translate-x-full'); }, 10);
+            } else {
+                drawer.classList.add('-translate-x-full');
+                setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+            }
+        }
+
+        window.voltarHomeVendedor = function() {
+            marcaAtual = '';
+            categoriaAtiva = 'TODAS';
+            toggleDrawerCategorias(false);
+            document.getElementById('homeViewVendedor').classList.remove('hidden');
+            document.getElementById('productsViewVendedor').classList.add('hidden');
+            document.getElementById('baratosViewVendedor').classList.add('hidden');
+            document.getElementById('colorsViewVendedor').classList.add('hidden');
+            document.getElementById('refsViewVendedor').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.abrirModuloBaratos = function() {
+            toggleDrawerCategorias(false);
+            document.getElementById('homeViewVendedor').classList.add('hidden');
+            document.getElementById('productsViewVendedor').classList.add('hidden');
+            document.getElementById('colorsViewVendedor').classList.add('hidden');
+            document.getElementById('refsViewVendedor').classList.add('hidden');
+            document.getElementById('baratosViewVendedor').classList.remove('hidden');
+            document.getElementById('inputPesquisaBarato').value = '';
+            procurarArtigosMaisBaratosInteligente();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.abrirModuloCoresVendedor = function() {
+            toggleDrawerCategorias(false);
+            document.getElementById('homeViewVendedor').classList.add('hidden');
+            document.getElementById('productsViewVendedor').classList.add('hidden');
+            document.getElementById('baratosViewVendedor').classList.add('hidden');
+            document.getElementById('refsViewVendedor').classList.add('hidden');
+            document.getElementById('colorsViewVendedor').classList.remove('hidden');
+            document.getElementById('calcCorNota').value = '';
+            preencherSelectCoresVendedor();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.abrirModuloRefsVendedor = function() {
+            toggleDrawerCategorias(false);
+            document.getElementById('homeViewVendedor').classList.add('hidden');
+            document.getElementById('productsViewVendedor').classList.add('hidden');
+            document.getElementById('baratosViewVendedor').classList.add('hidden');
+            document.getElementById('colorsViewVendedor').classList.add('hidden');
+            document.getElementById('refsViewVendedor').classList.remove('hidden');
+            document.getElementById('lupaRefInputVendedor').value = '';
+            pesquisarRefExclusivaVendedor();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function carregarTudoVendedor() {
+            try {
+                const snapP = await getDocs(collection(db, "produtos"));
+                todosProdutos = [];
+                snapP.forEach(d => todosProdutos.push({ id: d.id, ...d.data() }));
+                renderizarGrelhaMarcasVendedor();
+
+                const snapC = await getDocs(collection(db, "precos_cores"));
+                tabelaCores = [];
+                snapC.forEach(d => tabelaCores.push({ id: d.id, ...d.data() }));
+
+                const snapR = await getDocs(collection(db, "referencias_carros"));
+                dicionarioRefs = [];
+                snapR.forEach(d => dicionarioRefs.push({ id: d.id, ...d.data() }));
+            } catch (err) { 
+                console.warn("Aviso: A carregar a partir da cache offline segura.", err);
+            }
+        }
+
+        function renderizarGrelhaMarcasVendedor() {
+            const grid = document.getElementById('brandsGridVendedor');
+            const marcas = Array.from(new Set(todosProdutos.map(p => (p.marca || 'GERAL').trim().toUpperCase()))).sort();
+
+            let html = `
+                <div onclick="abrirModuloBaratos()" class="bg-gradient-to-br from-emerald-900 to-teal-950 text-white p-5 sm:p-6 rounded-2xl shadow-xs border border-emerald-600 hover:shadow-md cursor-pointer transition flex flex-col items-center justify-center text-center group active:scale-95">
+                    <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-xl font-bold mb-3 group-hover:scale-110 transition shadow-inner"><i class="fas fa-tags text-emerald-300"></i></div>
+                    <h3 class="font-black text-xs sm:text-sm uppercase tracking-wide">MAIS BARATOS</h3>
+                    <span class="text-[10px] text-emerald-200 mt-1 font-medium">Pesquisa com Desconto e Nota</span>
+                </div>
+
+                <div onclick="abrirModuloCoresVendedor()" class="bg-gradient-to-br from-teal-900 to-emerald-950 text-white p-5 sm:p-6 rounded-2xl shadow-xs border border-teal-600 hover:shadow-md cursor-pointer transition flex flex-col items-center justify-center text-center group active:scale-95">
+                    <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-xl font-bold mb-3 group-hover:scale-110 transition shadow-inner"><i class="fas fa-calculator text-teal-300"></i></div>
+                    <h3 class="font-black text-xs sm:text-sm uppercase tracking-wide">CALCULAR COR</h3>
+                    <span class="text-[10px] text-teal-200 mt-1 font-medium">Por Gramas + Notas</span>
+                </div>
+            `;
+
+            html += marcas.map(m => `
+                <div onclick="abrirMarcaVendedor('${m}')" class="bg-white p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200 hover:shadow-md hover:border-emerald-500 cursor-pointer transition flex flex-col items-center justify-center text-center group active:scale-95">
+                    <div class="w-12 h-12 bg-emerald-50 text-emerald-800 rounded-2xl flex items-center justify-center text-lg font-bold mb-3 group-hover:bg-emerald-900 group-hover:text-white transition shadow-inner"><i class="fas fa-tag"></i></div>
+                    <h3 class="font-black text-gray-900 text-xs sm:text-sm uppercase tracking-tight truncate w-full">${m}</h3>
+                    <span class="text-[10px] text-gray-400 mt-1 font-semibold">Ver catálogo</span>
+                </div>
+            `).join('');
+
+            grid.innerHTML = html;
+        }
+
+        window.abrirMarcaVendedor = function(m) {
+            marcaAtual = m;
+            categoriaAtiva = 'TODAS';
+
+            document.getElementById('homeViewVendedor').classList.add('hidden');
+            document.getElementById('colorsViewVendedor').classList.add('hidden');
+            document.getElementById('baratosViewVendedor').classList.add('hidden');
+            document.getElementById('refsViewVendedor').classList.add('hidden');
+            document.getElementById('productsViewVendedor').classList.remove('hidden');
+            document.getElementById('selectedBrandTitleVendedor').textContent = `Marca: ${m}`;
+
+            renderizarCatEArtigosSidebar();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.filtrarPorCategoria = function(cat) {
+            categoriaAtiva = cat;
+            toggleDrawerCategorias(false);
+            renderizarCatEArtigosSidebar();
+        }
+
+        window.procurarArtigosMaisBaratosInteligente = function() {
+            const inputVal = document.getElementById('inputPesquisaBarato').value.trim().toUpperCase();
+            const container = document.getElementById('resultadoBaratosContainer');
+
+            if (!inputVal) {
+                container.innerHTML = `<div class="text-center text-gray-400 italic text-xs py-10 border border-dashed rounded-xl">Escreva o que procura (ex: verniz, poliéster) para filtrar.</div>`;
+                return;
+            }
+
+            const palavrasChave = inputVal.split(/\s+/);
+
+            const filtrados = todosProdutos.filter(p => {
+                const nome = (p.nome || '').toUpperCase();
+                const cat = (p.categoria || '').toUpperCase();
+                const marca = (p.marca || '').toUpperCase();
+                const textoCompleto = `${marca} ${cat} ${nome}`;
+
+                if (palavrasChave.includes('VERNIZ')) {
+                    if (textoCompleto.includes('ENDURECEDOR') || textoCompleto.includes('CATALISADOR') || textoCompleto.includes('PRIMARIO') || textoCompleto.includes('MASSA')) {
+                        return false;
+                    }
+                }
+
+                return palavrasChave.every(palavra => textoCompleto.includes(palavra));
+            });
+
+            filtrados.sort((a, b) => Number(a.precoSemIVA || 0) - Number(b.precoSemIVA || 0));
+
+            if (filtrados.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-gray-500 bg-gray-50 rounded-xl border"><p class="font-bold text-xs">Nenhum artigo exato para "${inputVal}".</p></div>`;
+                return;
+            }
+
+            container.innerHTML = filtrados.map((p, idx) => {
+                const pvpBase = Number(p.precoSemIVA || 0);
+                const imgSegura = p.imagem || 'https://via.placeholder.com/300?text=Sem+Imagem';
+                const descMaximo = (p.descontoMaximo !== undefined && p.descontoMaximo !== null && p.descontoMaximo !== '') ? Number(p.descontoMaximo) : 100;
+                const eMaisBarato = idx === 0;
+
+                return `
+                    <div class="bg-white rounded-2xl border ${eMaisBarato ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-gray-200'} p-4 space-y-3 shadow-xs relative">
+                        ${eMaisBarato ? `<span class="absolute -top-2.5 left-4 bg-emerald-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase shadow">Mais Barato</span>` : ''}
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-gray-50 rounded-xl border flex items-center justify-center p-1 shrink-0 cursor-pointer" onclick="abrirZoomImagem('${imgSegura}', '${(p.nome || '').replace(/'/g, "\\'")}')">
+                                <img src="${imgSegura}" alt="${p.nome}" class="max-h-full max-w-full object-contain">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <span class="text-[9px] text-emerald-700 font-extrabold uppercase tracking-wider block">${p.marca || 'GERAL'} • ${p.categoria || ''}</span>
+                                <h4 class="font-bold text-xs text-gray-900 truncate">${p.nome}</h4>
+                                <span class="text-[11px] text-gray-500 font-semibold">PVP s/ IVA: ${pvpBase.toFixed(2)} €</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-700 mb-1">Desconto (%): ${descMaximo < 100 ? `<span class="text-amber-600">(Max: ${descMaximo}%)</span>` : ''}</label>
+                                <input type="number" id="barato_desc_${p.id}" value="0" min="0" max="${descMaximo}" class="w-full border border-gray-300 rounded-lg p-2 font-bold text-xs bg-white text-right">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-700 mb-1">Nota / Veículo:</label>
+                                <input type="text" id="barato_nota_${p.id}" placeholder="Ex: Matrícula / Detalhe" class="w-full border border-gray-300 rounded-lg p-2 font-semibold text-xs bg-white">
+                            </div>
+                        </div>
+
+                        <button onclick="adicionarBaratoComDetalhes('${p.id}', ${pvpBase}, ${descMaximo})" class="w-full bg-emerald-800 hover:bg-emerald-900 active:scale-95 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 text-xs uppercase tracking-wider shadow-xs">
+                            <i class="fas fa-plus-circle"></i> Adicionar ao Orçamento com Desconto e Nota
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.adicionarBaratoComDetalhes = function(id, pvpBase, maxPermitido) {
+            const p = todosProdutos.find(i => i.id === id);
+            if (!p) return;
+
+            const descInput = document.getElementById(`barato_desc_${id}`);
+            const notaInput = document.getElementById(`barato_nota_${id}`);
+
+            let desc = parseFloat(descInput.value) || 0;
+            if (desc > maxPermitido) {
+                alert(`O desconto máximo permitido para este artigo é de ${maxPermitido}%.`);
+                desc = maxPermitido;
+                descInput.value = maxPermitido;
+            }
+
+            const nota = notaInput.value.trim();
+
+            itensOrcamento.push({
+                id: p.id,
+                nome: p.nome,
+                pvpBase: pvpBase,
+                desconto: desc,
+                qtd: 1,
+                nota: nota
+            });
+
+            atualizarBadgesOrcamento();
+            alert("Artigo adicionado ao orçamento com sucesso!");
+        }
+
+        function renderizarCatEArtigosSidebar() {
+            const prodsMarca = todosProdutos.filter(p => (p.marca || 'GERAL').toUpperCase() === marcaAtual);
+            document.getElementById('productCountBadge').textContent = `${prodsMarca.length} Artigo(s)`;
+
+            const map = {};
+            prodsMarca.forEach(p => {
+                const c = (p.categoria || 'GERAL').toUpperCase();
+                if (!map[c]) map[c] = [];
+                map[c].push(p);
+            });
+
+            const listaCategorias = Object.keys(map).sort();
+
+            const sidebar = document.getElementById('sidebarCategoriesContainer');
+            let sidebarHtml = `
+                <button onclick="filtrarPorCategoria('TODAS')" class="px-3.5 py-2.5 rounded-xl text-xs font-bold transition w-full flex items-center justify-between ${categoriaAtiva === 'TODAS' ? 'bg-emerald-900 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}">
+                    <span><i class="fas fa-th-large mr-1.5"></i> TODAS</span>
+                    <span class="text-[9px] bg-black/10 px-2 py-0.5 rounded-full font-bold">${prodsMarca.length}</span>
+                </button>
+            `;
+
+            sidebarHtml += listaCategorias.map(cat => `
+                <button onclick="filtrarPorCategoria('${cat}')" class="px-3.5 py-2.5 rounded-xl text-xs font-bold transition w-full flex items-center justify-between ${categoriaAtiva === cat ? 'bg-emerald-900 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}">
+                    <span class="truncate mr-2">${cat}</span>
+                    <span class="text-[9px] bg-black/10 px-2 py-0.5 rounded-full font-bold">${map[cat].length}</span>
+                </button>
+            `).join('');
+
+            sidebar.innerHTML = sidebarHtml;
+
+            const categoriasAExibir = categoriaAtiva === 'TODAS' ? listaCategorias : [categoriaAtiva];
+            const containerArtigos = document.getElementById('categoriesContainerVendedor');
+
+            if (categoriasAExibir.length === 0 || prodsMarca.length === 0) {
+                containerArtigos.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-gray-400 border text-xs">Nenhum artigo nesta categoria.</div>`;
+                return;
+            }
+
+            containerArtigos.innerHTML = categoriasAExibir.map(c => {
+                const artigosDaCategoria = map[c] || [];
+                return `
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-folder text-emerald-700 text-sm"></i>
+                            <h3 class="font-black text-xs sm:text-sm text-gray-900 uppercase tracking-wide">${c}</h3>
+                        </div>
+                        <span class="text-[10px] bg-emerald-50 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">${artigosDaCategoria.length} Artigo(s)</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                        ${artigosDaCategoria.map(p => {
+                            const pvpBase = Number(p.precoSemIVA || 0);
+                            const imgSegura = p.imagem || 'https://via.placeholder.com/300?text=Sem+Imagem';
+                            const nomeEscapado = (p.nome || '').replace(/'/g, "\\'");
+                            const eKit = (p.categoria || '').toUpperCase().includes('KIT') || (p.nome || '').toUpperCase().includes('KIT');
+                            
+                            const descMaximo = (p.descontoMaximo !== undefined && p.descontoMaximo !== null && p.descontoMaximo !== '') 
+                                ? Number(p.descontoMaximo) 
+                                : null;
+
+                            return `
+                            <div class="bg-white rounded-xl border border-gray-200 p-3.5 flex flex-col justify-between shadow-xs hover:border-emerald-400 transition relative">
+                                ${eKit ? `<span class="absolute top-2 right-2 bg-amber-500 text-white font-black text-[8px] px-2 py-0.5 rounded-full shadow uppercase z-10">KIT</span>` : ''}
+                                
+                                <div>
+                                    <div class="relative h-44 bg-gray-50 rounded-xl mb-2.5 overflow-hidden border border-gray-100 cursor-pointer group flex items-center justify-center p-2" onclick="abrirZoomImagem('${imgSegura}', '${nomeEscapado}')">
+                                        <img src="${imgSegura}" alt="${p.nome}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300">
+                                        <div class="absolute bottom-2 right-2 bg-black/60 text-white p-1.5 rounded-lg text-xs backdrop-blur-xs flex items-center gap-1">
+                                            <i class="fas fa-search-plus"></i> <span class="text-[9px] font-bold">Zoom</span>
+                                        </div>
+                                    </div>
+                                    <span class="text-[9px] text-emerald-700 font-extrabold uppercase tracking-wider block mb-0.5">${p.categoria || 'GERAL'}</span>
+                                    <h4 class="font-bold text-xs text-gray-900 leading-tight">${p.nome || ''}</h4>
+                                </div>
+
+                                <div class="mt-3 pt-2.5 border-t border-gray-100 space-y-2 text-xs">
+                                    <div class="flex justify-between items-center text-[11px]">
+                                        <span class="text-gray-500 font-semibold">PVP s/ IVA:</span>
+                                        <span class="font-bold text-gray-700">${pvpBase.toFixed(2)} €</span>
+                                    </div>
+
+                                    <div class="flex justify-between items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                                        <div class="flex items-center gap-1">
+                                            <label class="text-[10px] font-bold text-gray-700">Desconto:</label>
+                                            ${descMaximo !== null ? `
+                                                <button onclick="alert('Aviso Corminho: Este artigo tem um limite máximo de desconto de ${descMaximo}%.')" class="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded border border-amber-300 hover:bg-amber-200 transition shrink-0" title="Ver limite">
+                                                    Max ${descMaximo}%
+                                                </button>
+                                            ` : ''}
+                                        </div>
+
+                                        <div class="flex items-center gap-1 w-20">
+                                            <input type="number" id="desc_${p.id}" value="0" min="0" max="${descMaximo !== null ? descMaximo : 100}" 
+                                                oninput="validarEDescontar('${p.id}', ${pvpBase}, ${descMaximo !== null ? descMaximo : 100})" 
+                                                class="w-full border border-gray-300 rounded p-1 text-right font-bold text-xs bg-white">
+                                            <span class="font-bold text-gray-500 text-[10px]">%</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <input type="text" id="nota_${p.id}" placeholder="Nota / Veículo (Opcional)" class="w-full border border-gray-300 rounded p-1.5 text-[11px] font-semibold bg-gray-50">
+                                    </div>
+
+                                    <div class="flex justify-between items-center bg-emerald-50/70 p-2 rounded-lg border border-emerald-200">
+                                        <span class="text-[10px] font-extrabold text-emerald-900">Total c/ IVA:</span>
+                                        <span id="finalIva_${p.id}" class="text-emerald-900 font-black text-sm">${(pvpBase * (1 + TaxaIVA)).toFixed(2)} €</span>
+                                    </div>
+
+                                    <button onclick="adicionarAoOrcamento('${p.id}')" class="w-full bg-emerald-800 hover:bg-emerald-900 active:scale-95 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 mt-1 text-xs shadow-xs">
+                                        <i class="fas fa-plus-circle"></i> Adicionar
+                                    </button>
+                                </div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.abrirZoomImagem = function(url, nome) {
+            document.getElementById('imgZoomElement').src = url;
+            document.getElementById('tituloZoomElement').textContent = nome;
+            document.getElementById('modalZoomImagem').classList.remove('hidden');
+        }
+
+        window.fecharZoomImagem = function() {
+            document.getElementById('modalZoomImagem').classList.add('hidden');
+        }
+
+        window.validarEDescontar = function(id, pvpBase, maxPermitido) {
+            const descEl = document.getElementById(`desc_${id}`);
+            let desc = parseFloat(descEl.value) || 0;
+
+            if (maxPermitido !== 100 && desc > maxPermitido) {
+                alert(`O desconto máximo permitido para este artigo é de ${maxPermitido}%.`);
+                desc = maxPermitido;
+                descEl.value = maxPermitido;
+            }
+
+            recalcularPrecoArtigo(id, pvpBase);
+        }
+
+        window.recalcularPrecoArtigo = function(id, pvpBase) {
+            const descEl = document.getElementById(`desc_${id}`);
+            const resEl = document.getElementById(`finalIva_${id}`);
+            const desc = parseFloat(descEl.value) || 0;
+
+            const comDesconto = pvpBase * (1 - desc / 100);
+            const comIva = comDesconto * (1 + TaxaIVA);
+
+            resEl.textContent = `${comIva.toFixed(2)} €`;
+        }
+
+        function preencherSelectCoresVendedor() {
+            const select = document.getElementById('calcCorSelect');
+            if (tabelaCores.length === 0) {
+                select.innerHTML = `<option value="">Nenhum preço de cor no Admin</option>`;
+                return;
+            }
+            select.innerHTML = `<option value="">-- Selecione o Sistema / Efeito --</option>` + tabelaCores.map(c => `
+                <option value="${c.id}">${c.sistema} - ${c.tipo}</option>
+            `).join('');
+        }
+
+        window.calcularPrecoFinalVendedor = function() {
+            const corId = document.getElementById('calcCorSelect').value;
+            const gramas = parseFloat(document.getElementById('calcCorGramas').value) || 0;
+            const desc = parseFloat(document.getElementById('calcCorDesconto').value) || 0;
+            const nota = document.getElementById('calcCorNota').value.trim();
+
+            const resPvp = document.getElementById('resultadoPvpBaseCor');
+            const resComDesc = document.getElementById('resultadoComDescCor');
+            const resVal = document.getElementById('resultadoPrecoCor');
+            const resDet = document.getElementById('resultadoPrecoDetalhe');
+
+            if (!corId || gramas <= 0) {
+                resPvp.textContent = "0.00 €";
+                resComDesc.textContent = "0.00 €";
+                resVal.textContent = "0.00 €";
+                resDet.textContent = "Indique a quantidade em gramas.";
+                corCalculadaAtual = null;
+                return;
+            }
+
+            const itemCor = tabelaCores.find(c => c.id === corId);
+            if (!itemCor || !itemCor.precos) return;
+
+            const pMap = itemCor.precos;
+            const chaveEscalaoExato = `${gramas}g`;
+            let pvpBase = 0;
+
+            if (pMap[chaveEscalaoExato] !== undefined && pMap[chaveEscalaoExato] > 0) {
+                pvpBase = Number(pMap[chaveEscalaoExato]);
+                resDet.textContent = `Preço fixo da tabela para ${gramas}g.`;
+            } else {
+                const escaloesDisponiveis = Object.keys(pMap)
+                    .filter(k => k.endsWith('g') && !isNaN(parseInt(k)))
+                    .map(k => parseInt(k))
+                    .filter(g => g <= gramas && pMap[`${g}g`] > 0)
+                    .sort((a, b) => b - a);
+
+                if (escaloesDisponiveis.length > 0) {
+                    const escalaoInferior = escaloesDisponiveis[0];
+                    const precoEscalaoBase = Number(pMap[`${escalaoInferior}g`]);
+                    const precoPorGrama = precoEscalaoBase / escalaoInferior;
+                    pvpBase = precoPorGrama * gramas;
+
+                    resDet.textContent = `Calculado (${gramas}g) com base no escalão de ${escalaoInferior}g (${precoEscalaoBase.toFixed(2)} €).`;
+                } else {
+                    const preco100g = pMap['100g'] || 0;
+                    if (preco100g > 0) {
+                        pvpBase = (preco100g / 100) * gramas;
+                        resDet.textContent = `Calculado (${gramas}g) com base na tarifa de 100g.`;
+                    } else {
+                        resPvp.textContent = "--- €";
+                        resComDesc.textContent = "--- €";
+                        resVal.textContent = "--- €";
+                        resDet.textContent = "Sem escalão de preço de referência.";
+                        corCalculadaAtual = null;
+                        return;
+                    }
+                }
+            }
+
+            const comDesconto = pvpBase * (1 - desc / 100);
+            const totalComIva = comDesconto * (1 + TaxaIVA);
+
+            resPvp.textContent = `${pvpBase.toFixed(2)} €`;
+            resComDesc.textContent = `${comDesconto.toFixed(2)} €`;
+            resVal.textContent = `${totalComIva.toFixed(2)} €`;
+
+            corCalculadaAtual = {
+                id: `cor_${itemCor.id}_${gramas}g_${Date.now()}`,
+                nome: `Cor Afinada (${itemCor.sistema} ${itemCor.tipo}) - ${gramas}g`,
+                pvpBase: pvpBase,
+                desconto: desc,
+                qtd: 1,
+                nota: nota
+            };
+        }
+
+        window.adicionarCorAoOrcamento = function() {
+            if (!corCalculadaAtual) {
+                alert("Por favor selecione um sistema de cor e a quantidade em gramas primeiro!");
+                return;
+            }
+
+            corCalculadaAtual.nota = document.getElementById('calcCorNota').value.trim();
+
+            itensOrcamento.push({ ...corCalculadaAtual });
+            atualizarBadgesOrcamento();
+            alert("Cor adicionada ao orçamento com sucesso!");
+        }
+
+        window.adicionarAoOrcamento = function(id) {
+            const p = todosProdutos.find(i => i.id === id);
+            if (!p) return;
+
+            const descInput = document.getElementById(`desc_${id}`);
+            const notaInput = document.getElementById(`nota_${id}`);
+
+            const desc = descInput ? (parseFloat(descInput.value) || 0) : 0;
+            const nota = notaInput ? notaInput.value.trim() : '';
+            const pvpBase = Number(p.precoSemIVA || 0);
+
+            itensOrcamento.push({
+                id: p.id + '_' + Date.now(),
+                nome: p.nome,
+                pvpBase: pvpBase,
+                desconto: desc,
+                qtd: 1,
+                nota: nota
+            });
+
+            atualizarBadgesOrcamento();
+            alert("Artigo adicionado ao orçamento!");
+        }
+
+        function atualizarBadgesOrcamento() {
+            const totalItens = itensOrcamento.reduce((acc, i) => acc + i.qtd, 0);
+            const b1 = document.getElementById('badgeCountOrcamento');
+            const b2 = document.getElementById('floatingBadgeCount');
+
+            if (b1) b1.textContent = totalItens;
+            if (b2) b2.textContent = totalItens;
+
+            if (totalItens > 0 && b1) b1.classList.remove('hidden');
+            else if (b1) b1.classList.add('hidden');
+        }
+
+        window.abrirModalOrcamento = function() {
+            renderizarTabelaOrcamento();
+            document.getElementById('modalOrcamento').classList.remove('hidden');
+        }
+
+        window.fecharModalOrcamento = function() {
+            document.getElementById('modalOrcamento').classList.add('hidden');
+        }
+
+        window.guardarOrcamentoNoHistorico = function() {
+            if (itensOrcamento.length === 0) {
+                alert("O orçamento está vazio!");
+                return;
+            }
+            const nomeCliente = document.getElementById('orcClienteNome').value.trim() || 'Cliente sem nome';
+            const contactoCliente = document.getElementById('orcClienteContacto').value.trim() || '';
+            
+            let subtotal = 0;
+            itensOrcamento.forEach(i => {
+                const comDesc = i.pvpBase * (1 - i.desconto / 100);
+                subtotal += comDesc * i.qtd;
+            });
+            const totalComIva = subtotal * (1 + TaxaIVA);
+
+            const novoRegisto = {
+                id: Date.now(),
+                data: new Date().toLocaleString('pt-PT'),
+                cliente: nomeCliente,
+                contacto: contactoCliente,
+                itens: [...itensOrcamento],
+                total: totalComIva.toFixed(2)
+            };
+
+            let historico = JSON.parse(localStorage.getItem('corminho_historico_orcamentos') || '[]');
+            historico.unshift(novoRegisto);
+            localStorage.setItem('corminho_historico_orcamentos', JSON.stringify(historico));
+
+            alert("Orçamento guardado no histórico com sucesso!");
+        }
+
+        window.abrirHistoricoOrcamentos = function() {
+            const container = document.getElementById('listaHistoricoContainer');
+            const historico = JSON.parse(localStorage.getItem('corminho_historico_orcamentos') || '[]');
+
+            if (historico.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-400 italic text-xs py-8">Nenhum orçamento guardado no histórico.</div>`;
+            } else {
+                container.innerHTML = historico.map((h, index) => `
+                    <div class="bg-gray-50 border border-gray-200 p-3.5 rounded-xl space-y-2 text-xs">
+                        <div class="flex justify-between items-center border-b pb-1.5 font-bold">
+                            <span class="text-emerald-900">${h.cliente} ${h.contacto ? '(' + h.contacto + ')' : ''}</span>
+                            <span class="text-gray-400 font-normal text-[10px]">${h.data}</span>
+                        </div>
+                        <div class="text-gray-600 font-semibold">Total: <span class="text-emerald-900 font-black">${h.total} €</span> (${h.itens.length} artigos)</div>
+                        <div class="flex gap-2 pt-1">
+                            <button onclick="carregarOrcamentoDoHistorico(${index})" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-1.5 rounded-lg text-center transition">Carregar Proposta</button>
+                            <button onclick="apagarOrcamentoHistorico(${index})" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold px-3 py-1.5 rounded-lg transition"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('modalHistorico').classList.remove('hidden');
+        }
+
+        window.fecharHistoricoOrcamentos = function() {
+            document.getElementById('modalHistorico').classList.add('hidden');
+        }
+
+        window.carregarOrcamentoDoHistorico = function(index) {
+            const historico = JSON.parse(localStorage.getItem('corminho_historico_orcamentos') || '[]');
+            const h = historico[index];
+            if (!h) return;
+
+            document.getElementById('orcClienteNome').value = h.cliente;
+            document.getElementById('orcClienteContacto').value = h.contacto || '';
+            itensOrcamento = [...h.itens];
+
+            atualizarBadgesOrcamento();
+            fecharHistoricoOrcamentos();
+            abrirModalOrcamento();
+            alert("Orçamento carregado com sucesso!");
+        }
+
+        window.apagarOrcamentoHistorico = function(index) {
+            if (!confirm("Tem certeza que deseja apagar este orçamento do histórico?")) return;
+            let historico = JSON.parse(localStorage.getItem('corminho_historico_orcamentos') || '[]');
+            historico.splice(index, 1);
+            localStorage.setItem('corminho_historico_orcamentos', JSON.stringify(historico));
+            abrirHistoricoOrcamentos();
+        }
+
+        function renderizarTabelaOrcamento() {
+            const tbody = document.getElementById('tbodyOrcamentoItens');
+            if (itensOrcamento.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400 italic">Nenhum artigo no orçamento.</td></tr>`;
+                document.getElementById('orcSubtotal').textContent = "0.00 €";
+                document.getElementById('orcIva').textContent = "0.00 €";
+                document.getElementById('orcTotalFinal').textContent = "0.00 €";
+                return;
+            }
+
+            let subtotalSemIva = 0;
+
+            tbody.innerHTML = itensOrcamento.map((item, idx) => {
+                const comDescontoUnit = item.pvpBase * (1 - item.desconto / 100);
+                const totalItemSemIva = comDescontoUnit * item.qtd;
+                const totalItemComIva = totalItemSemIva * (1 + TaxaIVA);
+
+                subtotalSemIva += totalItemSemIva;
+
+                return `
+                    <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+                        <td class="p-2.5">
+                            <div class="font-extrabold text-gray-900">${item.nome}</div>
+                            ${item.nota ? `<div class="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded mt-1 border border-emerald-200 inline-block">Nota: ${item.nota}</div>` : ''}
+                        </td>
+                        <td class="p-2.5 text-center font-bold align-top">
+                            <input type="number" value="${item.qtd}" min="1" onchange="alterarQtdOrcamento(${idx}, this.value)" class="w-10 border border-gray-300 rounded text-center p-1 font-bold text-xs bg-white">
+                        </td>
+                        <td class="p-2.5 text-right font-bold text-amber-700 align-top">${item.desconto}%</td>
+                        <td class="p-2.5 text-right align-top">
+                            <div class="font-black text-emerald-900">${totalItemComIva.toFixed(2)} €</div>
+                        </td>
+                        <td class="p-2.5 text-center align-top no-print">
+                            <button onclick="removerItemOrcamento(${idx})" class="text-red-600 hover:text-red-800 font-bold p-1"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            const valorIva = subtotalSemIva * TaxaIVA;
+            const totalFinal = subtotalSemIva + valorIva;
+
+            document.getElementById('orcSubtotal').textContent = `${subtotalSemIva.toFixed(2)} €`;
+            document.getElementById('orcIva').textContent = `${valorIva.toFixed(2)} €`;
+            document.getElementById('orcTotalFinal').textContent = `${totalFinal.toFixed(2)} €`;
+        }
+
+        window.alterarQtdOrcamento = function(idx, val) {
+            const q = parseInt(val) || 1;
+            itensOrcamento[idx].qtd = q;
+            renderizarTabelaOrcamento();
+            atualizarBadgesOrcamento();
+        }
+
+        window.removerItemOrcamento = function(idx) {
+            itensOrcamento.splice(idx, 1);
+            renderizarTabelaOrcamento();
+            atualizarBadgesOrcamento();
+        }
+
+        window.limparOrcamento = function() {
+            itensOrcamento = [];
+            renderizarTabelaOrcamento();
+            atualizarBadgesOrcamento();
+        }
+
+        window.enviarOrcamentoWhatsApp = function() {
+            if (itensOrcamento.length === 0) {
+                alert("O orçamento está vazio!");
+                return;
+            }
+
+            const cliente = document.getElementById('orcClienteNome').value.trim() || 'Estimado Cliente';
+            let texto = `Corminho Tintas - Proposta de Orcamento Detalhado\n`;
+            texto += `Cliente: ${cliente}\n\n`;
+            texto += `Itens da Proposta:\n`;
+
+            let subtotal = 0;
+            itensOrcamento.forEach(i => {
+                const comDesc = i.pvpBase * (1 - i.desconto / 100);
+                const totItemSemIva = comDesc * i.qtd;
+                const totItemComIva = totItemSemIva * (1 + TaxaIVA);
+                subtotal += totItemSemIva;
+                
+                texto += `- ${i.qtd}x ${i.nome}\n`;
+                if (i.nota) {
+                    texto += `   Nota: ${i.nota}\n`;
+                }
+                if (i.desconto > 0) {
+                    texto += `   Desconto: ${i.desconto}%\n`;
+                }
+                texto += `   Total c/ IVA: ${totItemComIva.toFixed(2)} Euros\n\n`;
+            });
+
+            const iva = subtotal * TaxaIVA;
+            const total = subtotal + iva;
+
+            texto += `-----------------------------------\n`;
+            texto += `Subtotal s/ IVA: ${subtotal.toFixed(2)} Euros\n`;
+            texto += `IVA (23%): ${iva.toFixed(2)} Euros\n`;
+            texto += `TOTAL C/ IVA: ${total.toFixed(2)} Euros`;
+
+            const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+            window.open(url, '_blank');
+        }
+
+        window.pesquisarRefExclusivaVendedor = function() {
+            const termo = document.getElementById('lupaRefInputVendedor').value.trim().toUpperCase();
+            const box = document.getElementById('lupaResultadoVendedor');
+
+            if (!termo) {
+                box.innerHTML = `<div class="text-center text-amber-200/60 italic text-xs py-10 border border-dashed border-amber-700/50 rounded-xl">Escreva o código da tinta para consultar a referência.</div>`;
+                return;
+            }
+
+            const resultados = dicionarioRefs.filter(r => {
+                const cod = (r.codigo || '').toUpperCase();
+                const marca = (r.marcaCarro || '').toUpperCase();
+                const cor = (r.corPrincipal || '').toUpperCase();
+                const nome = (r.nomeCor || '').toUpperCase();
+                return cod.includes(termo) || marca.includes(termo) || cor.includes(termo) || nome.includes(termo);
+            });
+
+            if (resultados.length > 0) {
+                box.innerHTML = resultados.map(r => `
+                    <div class="bg-amber-900/90 p-4 rounded-xl border border-amber-500/80 shadow-xs space-y-1">
+                        <div class="flex justify-between items-center border-b border-amber-700/50 pb-1.5">
+                            <span class="text-xs font-black bg-amber-200 text-amber-950 px-2.5 py-0.5 rounded uppercase">${r.codigo}</span>
+                            <span class="text-xs font-bold text-amber-200 uppercase">${r.marcaCarro || 'Fabricante Geral'}</span>
+                        </div>
+                        <p class="text-xs font-bold text-emerald-300 uppercase pt-0.5">Tom: ${r.corPrincipal || 'N/D'}</p>
+                        <h4 class="font-extrabold text-xs sm:text-sm text-white">${r.nomeCor}</h4>
+                    </div>
+                `).join('');
+            } else {
+                box.innerHTML = `<div class="text-center py-6 text-amber-300 bg-amber-950/40 rounded-xl border border-amber-800"><p class="font-bold text-xs">Nenhuma referência para "${termo}".</p></div>`;
+            }
+        }
+    </script>
+</body>
+</html>
